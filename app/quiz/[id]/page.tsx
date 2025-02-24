@@ -9,7 +9,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import Footer from "@/components/Footer"
 
 const multipleChoiceQuestions = [
   {
@@ -75,16 +74,22 @@ const integerQuestions = [
 export default function QuizPage() {
   const router = useRouter()
   const { id } = useParams()
+  type UserAnswer = {
+    question: string;
+    userAnswer: string;
+    correctAnswer: string | number;
+    isCorrect: boolean;
+  };
+  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState("")
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(30)
   const [quizEnded, setQuizEnded] = useState(false)
-  const [userAnswers, setUserAnswers] = useState([])
   const [instructionsRead, setInstructionsRead] = useState(false)
   const [quizStarted, setQuizStarted] = useState(false)
 
-  const { toast, showToast } = useToast()
+  const { showToast } = useToast();
 
   const allQuestions = id === "1" ? multipleChoiceQuestions : integerQuestions
   const currentQuestion = allQuestions[currentQuestionIndex]
@@ -151,9 +156,10 @@ export default function QuizPage() {
       return
     }
 
-    const isCorrect = currentQuestion.options
-      ? selectedAnswer === currentQuestion.answer
-      : Number.parseInt(selectedAnswer) === currentQuestion.answer
+    const isCorrect =
+  "options" in currentQuestion
+    ? selectedAnswer === currentQuestion.answer
+    : Number.parseInt(selectedAnswer) === currentQuestion.answer;
 
     if (isCorrect) {
       setScore(score + 1)
@@ -201,7 +207,12 @@ export default function QuizPage() {
               <li>You have 30 seconds for each question.</li>
             </ol>
             <div className="flex items-center space-x-2">
-              <Checkbox id="instructions" checked={instructionsRead} onCheckedChange={setInstructionsRead} />
+            <Checkbox 
+  id="instructions" 
+  checked={instructionsRead} 
+  onCheckedChange={(checked) => setInstructionsRead(checked === true)} 
+/>
+
               <label
                 htmlFor="instructions"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -231,7 +242,7 @@ export default function QuizPage() {
         </CardHeader>
         <CardContent className="flex flex-col items-center">
           <h2 className="text-xl mb-6 text-center">{currentQuestion.question}</h2>
-          {currentQuestion.options ? (
+          {"options" in currentQuestion ? (
             <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer} className="space-y-4 w-full max-w-md">
               {currentQuestion.options.map((option, index) => (
                 <div
@@ -263,17 +274,17 @@ export default function QuizPage() {
   )
 }
 
-async function openDatabase() {
+async function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("QuizDatabase", 1)
+    const request = indexedDB.open("QuizDatabase", 1);
 
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result as IDBDatabase); // Explicit type assertion
 
     request.onupgradeneeded = () => {
-      const db = request.result
-      db.createObjectStore("quizResults", { autoIncrement: true })
-    }
-  })
+      const db = request.result;
+      db.createObjectStore("quizResults", { autoIncrement: true });
+    };
+  });
 }
 

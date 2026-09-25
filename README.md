@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quiz Platform
 
-## Getting Started
+A timed quiz app built with Next.js 15, React 19, TypeScript and Tailwind. Six built-in quizzes across categories, a builder for your own, streaks and badges, local profiles with a leaderboard, and dark mode. Everything is stored in the browser with IndexedDB and localStorage, so there is no backend and no sign-up.
 
-First, run the development server:
+## Features
+
+- **Six quizzes, six categories**: General Knowledge, Science, Programming, Maths, Geography and History, each tagged easy, medium or hard, with mixed multiple-choice and whole-number questions
+- **Quiz builder** at `/create`: write your own questions, pick a category, difficulty and timer, edit or delete later
+- **Two timer modes**: a clock per question or one clock for the whole quiz, with pause and resume
+- **Shuffle** question and option order each attempt
+- **Keyboard shortcuts**: 1 to 9 pick an option, Enter submits, P pauses
+- **Scoreboard** with a per-question review, a share button (Web Share or clipboard) and a downloadable PNG result card
+- **History** with a score-over-time chart, filter by quiz, and CSV or JSON export
+- **Streaks and badges**: eleven badges with progress toward the locked ones
+- **Local profiles**: several people can share a browser, each with their own history, plus a leaderboard across profiles
+- **Dark mode** with a toggle that follows the OS by default
+- Responsive layout, toasts, loading states and a 404 page
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Other scripts:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test            # unit tests (Vitest)
+npm run typecheck   # tsc --noEmit
+npm run lint
+npm run build       # production build
+```
 
-## Learn More
+CI runs lint, type check, tests and build on every push and pull request (`.github/workflows/ci.yml`).
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  page.tsx               home: hero, stats, filters, quiz grid, badges
+  quiz/[id]/page.tsx     the quiz runner (timers, pause, shortcuts)
+  scoreboard/            result page with review, share and PNG card
+  history/               past attempts, chart, export
+  create/                quiz builder (also edits with ?edit=custom-<id>)
+  profile/               profiles, badges, leaderboard
+components/
+  Header, Footer, QuizCard, BadgeGrid, Loading
+  ThemeProvider, ProfileProvider, useData
+  ui/                    shadcn-style primitives and the toast provider
+lib/
+  quizzes.ts             built-in quiz data, types, answer checking, shuffle, validation
+  db.ts                  IndexedDB helpers for results and custom quizzes
+  profiles.ts            local profile storage
+  settings.ts            theme and quiz preferences
+  stats.ts               streaks, aggregate stats, badges
+  export.ts              CSV/JSON export, share text, result card renderer
+tests/                   Vitest suites for the lib modules
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Adding a built-in quiz
 
-## Deploy on Vercel
+Add an entry to the `quizzes` array in `lib/quizzes.ts`. A question is either
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```ts
+{ id: 11, question: '...', options: ['A', 'B', 'C', 'D'], answer: 'B' }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+or
+
+```ts
+{ id: 12, question: '...', answer: 42 }
+```
+
+Question ids must be unique across all quizzes (a test checks this).
+
+## Accounts and sync
+
+Profiles and results live only in the current browser. The storage layer is isolated in `lib/db.ts` and `lib/profiles.ts`, so wiring up a backend such as Supabase means replacing those modules rather than touching the pages.
+
+## Deploying
+
+The app is static apart from client-side storage, so it deploys to Vercel with no configuration. Any host that serves a Next.js build works.
